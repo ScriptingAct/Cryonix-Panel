@@ -29,7 +29,7 @@ local Confirmed = false
 WindUI:Popup({
     Title = "Cryonix_Panel",
     Icon = "info",
-    Content = "Loading " .. gradient("AWP_HUB", Color3.fromHex("#00FF87"), Color3.fromHex("#60EFFF")) .. " Premium",
+    Content = "Loading " .. gradient("Cryonix", Color3.fromHex("#00FF87"), Color3.fromHex("#00FF87")) .. " Panel",
     Buttons = {
         {
             Title = "Cancel",
