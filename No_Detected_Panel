@@ -1,0 +1,323 @@
+-- Load WindUI
+local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local Lighting = game:GetService("Lighting")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = Players.LocalPlayer
+local VirtualUser = game:GetService("VirtualUser")
+
+-- Gradient Function
+function gradient(text, startColor, endColor)
+    local result = ""
+    local length = #text
+    for i = 1, length do
+        local t = (i - 1) / math.max(length - 1, 1)
+        local r = math.floor((startColor.R + (endColor.R - startColor.R) * t) * 255)
+        local g = math.floor((startColor.G + (endColor.G - startColor.G) * t) * 255)
+        local b = math.floor((startColor.B + (endColor.B - startColor.B) * t) * 255)
+        local char = text:sub(i, i)
+        result = result .. "<font color=\"rgb(" .. r ..", " .. g .. ", " .. b .. ")\">" .. char .. "</font>"
+    end
+    return result
+end
+
+-- Popup
+local Confirmed = false
+WindUI:Popup({
+    Title = "Cryonix_Panel",
+    Icon = "info",
+    Content = "Loading " .. gradient("AWP_HUB", Color3.fromHex("#00FF87"), Color3.fromHex("#60EFFF")) .. " Premium",
+    Buttons = {
+        {
+            Title = "Cancel",
+            Callback = function() end,
+            Variant = "Secondary",
+        },
+        {
+            Title = "Continue",
+            Icon = "arrow-right",
+            Callback = function() Confirmed = true end,
+            Variant = "Primary",
+        }
+    }
+})
+repeat wait() until Confirmed
+
+-- Create Window
+local Window = WindUI:CreateWindow({
+    Title = "Cryonix_Panel",
+    Icon = "person-standing",
+    Author = "Cryonix [Premium]-[No detected]",
+    Folder = "CloudHub",
+    Size = UDim2.fromOffset(580, 460),
+    Transparent = true,
+    Theme = "Dark",
+    User = {
+        Enabled = true,
+        Callback = function() print("clicked") end,
+        Anonymous = false
+    },
+    SideBarWidth = 200,
+    KeySystem = {
+        Key = { "AWPADMINISTAROTEAO1", "AWPADMINISTAROTEAO1" },
+        SaveKey = false,
+    },
+})
+
+-- Tabs
+local Tabs = {
+    ESP = Window:Tab({ Title = "ESP", Icon = "eye" }),
+    Settings = Window:Tab({ Title = "Settings", Icon = "sliders-horizontal" }),
+    Unlockables = Window:Tab({ Title = "Unlockables", Icon = "lock-open" }),
+    Rake = Window:Tab({ Title = "Rake", Icon = "sword" }),
+}
+
+-- ESP
+local activeESP = {}
+
+local function applyHighlight(model, color)
+    if activeESP[model] then return end
+    if not model:IsDescendantOf(Workspace) then return end
+    if not model:FindFirstChild("HumanoidRootPart") then return end
+
+    local h = Instance.new("Highlight")
+    h.FillColor = color
+    h.OutlineColor = color
+    h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    h.Parent = model
+    activeESP[model] = h
+end
+
+local function clearESP()
+    for model, highlight in pairs(activeESP) do
+        if highlight then highlight:Destroy() end
+    end
+    activeESP = {}
+end
+
+Tabs.ESP:Toggle({
+    Title = "ESP: Rake",
+    Icon = "skull",
+    Value = false,
+    Callback = function(state)
+        RunService:UnbindFromRenderStep("RakeESP")
+        if state then
+            RunService:BindToRenderStep("RakeESP", 1, function()
+                clearESP()
+                for _, model in pairs(Workspace:GetChildren()) do
+                    if model:IsA("Model") and model.Name:lower():find("rake") then
+                        applyHighlight(model, Color3.fromRGB(255, 0, 0))
+                    end
+                end
+            end)
+        else
+            clearESP()
+        end
+    end,
+})
+
+Tabs.ESP:Toggle({
+    Title = "ESP: Players",
+    Icon = "user",
+    Value = false,
+    Callback = function(state)
+        RunService:UnbindFromRenderStep("PlayerESP")
+        if state then
+            RunService:BindToRenderStep("PlayerESP", 1, function()
+                clearESP()
+                for _, p in pairs(Players:GetPlayers()) do
+                    if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                        applyHighlight(p.Character, Color3.fromRGB(0, 170, 255))
+                    end
+                end
+            end)
+        else
+            clearESP()
+        end
+    end,
+})
+
+-- Infinite Stamina
+Tabs.Settings:Toggle({
+    Title = "Infinite Stamina",
+    Icon = "zap",
+    Value = false,
+    Callback = function(state)
+        RunService:UnbindFromRenderStep("InfiniteStamina")
+        if state then
+            RunService:BindToRenderStep("InfiniteStamina", 100, function()
+                local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+                local energy = character:FindFirstChild("Energy")
+                if energy then energy.Value = 100 end
+
+                for _, v in pairs(getgc(true)) do
+                    if type(v) == "table" and rawget(v, "STAMINA_REGEN") then
+                        v.STAMINA_REGEN = 100
+                        v.JUMP_STAMINA = 0
+                        v.JUMP_COOLDOWN = 0
+                        v.STAMINA_TAKE = 0
+                        v.stamina = 100
+                    end
+                end
+            end)
+        end
+    end,
+})
+
+-- Lighting Controls
+local originalLighting = {
+    Ambient = Lighting.Ambient,
+    ColorShift_Bottom = Lighting.ColorShift_Bottom,
+    ColorShift_Top = Lighting.ColorShift_Top,
+    Brightness = Lighting.Brightness,
+    FogEnd = Lighting.FogEnd,
+}
+
+local function resetLighting()
+    for prop, val in pairs(originalLighting) do
+        Lighting[prop] = val
+    end
+end
+
+Tabs.Settings:Toggle({
+    Title = "FullBright + No Fog",
+    Icon = "lightbulb",
+    Value = false,
+    Callback = function(state)
+        if state then
+            Lighting.Ambient = Color3.new(1, 1, 1)
+            Lighting.ColorShift_Bottom = Color3.new(1, 1, 1)
+            Lighting.ColorShift_Top = Color3.new(1, 1, 1)
+            Lighting.Brightness = 3
+            Lighting.FogEnd = 100000
+        else
+            resetLighting()
+        end
+    end,
+})
+
+Tabs.Settings:Toggle({
+    Title = "Fake Night Vision",
+    Icon = "eye",
+    Value = false,
+    Callback = function(state)
+        if state then
+            Lighting.Ambient = Color3.fromRGB(80, 255, 100)
+            Lighting.OutdoorAmbient = Color3.fromRGB(60, 180, 80)
+            Lighting.ColorShift_Bottom = Color3.fromRGB(60, 180, 80)
+            Lighting.ColorShift_Top = Color3.fromRGB(60, 180, 80)
+            Lighting.Brightness = 2.5
+            Lighting.FogEnd = 100000
+        else
+            resetLighting()
+        end
+    end,
+})
+
+-- Anti-AFK
+Tabs.Settings:Toggle({
+    Title = "Anti-AFK",
+    Icon = "coffee",
+    Value = true,
+    Callback = function()
+        Players.LocalPlayer.Idled:Connect(function()
+            VirtualUser:Button2Down(Vector2.new(0,0), Workspace.CurrentCamera.CFrame)
+            VirtualUser:Button2Up(Vector2.new(0,0), Workspace.CurrentCamera.CFrame)
+        end)
+    end,
+})
+
+Tabs.Settings:Toggle({
+    Title = "Infinite Night Vision [Gamepass Only]",
+    Icon = "eye",
+    Value = false,
+    Callback = function(state)
+        if state then
+            for _, v in pairs(getgc(true)) do
+                if type(v) == "table" and rawget(v, "NVG_TAKE") then
+                    v.NVG_TAKE = 0
+                    v.NVG_REGEN = 100
+                end
+            end
+        end
+    end,
+})
+
+-- Unlockables
+Tabs.Unlockables:Toggle({
+    Title = "No Fall Damage",
+    Icon = "shield",
+    Value = false,
+    Callback = function(state)
+        if state then
+            if not _G.NoFallDamageConnection then
+                local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    _G.NoFallDamageConnection = humanoid.HealthChanged:Connect(function(health)
+                        if health < humanoid.MaxHealth then
+                            humanoid.Health = humanoid.MaxHealth
+                        end
+                    end)
+                end
+            end
+        else
+            if _G.NoFallDamageConnection then
+                _G.NoFallDamageConnection:Disconnect()
+                _G.NoFallDamageConnection = nil
+            end
+        end
+    end,
+})
+
+Tabs.Unlockables:Toggle({
+    Title = "Unlock Supply Drop",
+    Icon = "gift",
+    Value = false,
+    Callback = function(state)
+        if state then
+            pcall(function()
+                local remote = ReplicatedStorage:FindFirstChild("UnlockSupplyDropEvent")
+                if remote and remote:IsA("RemoteEvent") then
+                    remote:FireServer()
+                end
+            end)
+        end
+    end,
+})
+
+-- Rake Kill Aura
+Tabs.Rake:Toggle({
+    Title = "Rake Kill Aura",
+    Icon = "sword",
+    Value = false,
+    Callback = function(state)
+        _G.RakeKillAura = state
+        spawn(function()
+            while _G.RakeKillAura do
+                for _, rake in pairs(Workspace:GetChildren()) do
+                    if rake:IsA("Model") and rake.Name:lower():find("rake") then
+                        local hrp = rake:FindFirstChild("HumanoidRootPart")
+                        local charHRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                        if hrp and charHRP then
+                            local dist = (hrp.Position - charHRP.Position).Magnitude
+                            if dist < 15 then
+                                local attackEvent = ReplicatedStorage:FindFirstChild("AttackEvent") or ReplicatedStorage:FindFirstChild("RakeAttackEvent")
+                                if attackEvent and attackEvent:IsA("RemoteEvent") then
+                                    pcall(function()
+                                        attackEvent:FireServer(rake)
+                                    end)
+                                end
+                            end
+                        end
+                    end
+                end
+                wait(math.random(0.4, 0.8))
+            end
+        end)
+    end,
+})
+
+print("[AWP_HUB] Script loaded successfully.")
