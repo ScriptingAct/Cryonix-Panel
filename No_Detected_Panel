@@ -62,7 +62,7 @@ local Window = WindUI:CreateWindow({
     },
     SideBarWidth = 200,
     KeySystem = {
-        Key = { "KryzTalonX", "AWPADMINISTAROTEAO1" },
+        Key = { "TalonX", "AWPADMINISTAROTEAO1" },
         SaveKey = false,
     },
 })
