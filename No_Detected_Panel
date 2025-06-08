@@ -320,4 +320,4 @@ Tabs.Rake:Toggle({
     end,
 })
 
-print("[AWP_HUB] Script loaded successfully.")
+print("[Cryonix_Panel] Script loaded successfully.")
