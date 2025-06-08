@@ -1,0 +1,193 @@
+-- Load WindUI
+local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local Lighting = game:GetService("Lighting")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = Players.LocalPlayer
+local VirtualUser = game:GetService("VirtualUser")
+
+-- Gradient Function
+function gradient(text, startColor, endColor)
+    local result = ""
+    local length = #text
+    for i = 1, length do
+        local t = (i - 1) / math.max(length - 1, 1)
+        local r = math.floor((startColor.R + (endColor.R - startColor.R) * t) * 255)
+        local g = math.floor((startColor.G + (endColor.G - startColor.G) * t) * 255)
+        local b = math.floor((startColor.B + (endColor.B - startColor.B) * t) * 255)
+        local char = text:sub(i, i)
+        result = result .. "<font color=\"rgb(" .. r ..", " .. g .. ", " .. b .. ")\">" .. char .. "</font>"
+    end
+    return result
+end
+
+-- Popup
+local Confirmed = false
+WindUI:Popup({
+    Title = "Cryonix_Panel[Free] - [Beta]",
+    Icon = "info",
+    Content = "Loading " .. gradient("Cryonix", Color3.fromHex("#00FF87"), Color3.fromHex("#00FF87")) .. " Panel",
+    Buttons = {
+        {
+            Title = "Cancel",
+            Callback = function() end,
+            Variant = "Secondary",
+        },
+        {
+            Title = "Continue",
+            Icon = "arrow-right",
+            Callback = function() Confirmed = true end,
+            Variant = "Primary",
+        }
+    }
+})
+repeat wait() until Confirmed
+
+-- Create Window
+local Window = WindUI:CreateWindow({
+    Title = "Cryonix_Panel",
+    Icon = "person-standing",
+    Author = "Cryonix [Premium]-[No detected]",
+    Folder = "CloudHub",
+    Size = UDim2.fromOffset(580, 460),
+    Transparent = true,
+    Theme = "Dark",
+    User = {
+        Enabled = true,
+        Callback = function() print("clicked") end,
+        Anonymous = false
+    },
+    SideBarWidth = 200,
+    KeySystem = {
+        Key = { "TalonX", "AWPADMINISTAROTEAO1" },
+        SaveKey = false,
+    },
+})
+
+-- Tabs
+local Tabs = {
+    ESP = Window:Tab({ Title = "ESP", Icon = "eye" }),
+    Settings = Window:Tab({ Title = "Settings", Icon = "sliders-horizontal" }),
+    Unlockables = Window:Tab({ Title = "Unlockables", Icon = "lock-open" }),
+    Rake = Window:Tab({ Title = "Rake", Icon = "sword" }),
+}
+
+-- ESP
+local activeESP = {}
+
+local function applyHighlight(model, color)
+    if activeESP[model] then return end
+    if not model:IsDescendantOf(Workspace) then return end
+    if not model:FindFirstChild("HumanoidRootPart") then return end
+
+    local h = Instance.new("Highlight")
+    h.FillColor = color
+    h.OutlineColor = color
+    h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    h.Parent = model
+    activeESP[model] = h
+end
+
+local function clearESP()
+    for model, highlight in pairs(activeESP) do
+        if highlight then highlight:Destroy() end
+    end
+    activeESP = {}
+end
+
+Tabs.ESP:Toggle({
+    Title = "ESP: Rake",
+    Icon = "skull",
+    Value = false,
+    Callback = function(state)
+        RunService:UnbindFromRenderStep("RakeESP")
+        if state then
+            RunService:BindToRenderStep("RakeESP", 1, function()
+                clearESP()
+                for _, model in pairs(Workspace:GetChildren()) do
+                    if model:IsA("Model") and model.Name:lower():find("rake") then
+                        applyHighlight(model, Color3.fromRGB(255, 0, 0))
+                    end
+                end
+            end)
+        else
+            clearESP()
+        end
+    end,
+})
+
+Tabs.ESP:Toggle({
+    Title = "ESP: Players",
+    Icon = "user",
+    Value = false,
+    Callback = function(state)
+        RunService:UnbindFromRenderStep("PlayerESP")
+        if state then
+            RunService:BindToRenderStep("PlayerESP", 1, function()
+                clearESP()
+                for _, p in pairs(Players:GetPlayers()) do
+                    if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                        applyHighlight(p.Character, Color3.fromRGB(0, 170, 255))
+                    end
+                end
+            end)
+        else
+            clearESP()
+        end
+    end,
+})
+
+-- Lighting Controls
+local originalLighting = {
+    Ambient = Lighting.Ambient,
+    ColorShift_Bottom = Lighting.ColorShift_Bottom,
+    ColorShift_Top = Lighting.ColorShift_Top,
+    Brightness = Lighting.Brightness,
+    FogEnd = Lighting.FogEnd,
+}
+
+local function resetLighting()
+    for prop, val in pairs(originalLighting) do
+        Lighting[prop] = val
+    end
+end
+
+Tabs.Settings:Toggle({
+    Title = "FullBright + No Fog",
+    Icon = "lightbulb",
+    Value = false,
+    Callback = function(state)
+        if state then
+            Lighting.Ambient = Color3.new(1, 1, 1)
+            Lighting.ColorShift_Bottom = Color3.new(1, 1, 1)
+            Lighting.ColorShift_Top = Color3.new(1, 1, 1)
+            Lighting.Brightness = 3
+            Lighting.FogEnd = 100000
+        else
+            resetLighting()
+        end
+    end,
+})
+
+Tabs.Settings:Toggle({
+    Title = "Fake Night Vision",
+    Icon = "eye",
+    Value = false,
+    Callback = function(state)
+        if state then
+            Lighting.Ambient = Color3.fromRGB(80, 255, 100)
+            Lighting.OutdoorAmbient = Color3.fromRGB(60, 180, 80)
+            Lighting.ColorShift_Bottom = Color3.fromRGB(60, 180, 80)
+            Lighting.ColorShift_Top = Color3.fromRGB(60, 180, 80)
+            Lighting.Brightness = 2.5
+            Lighting.FogEnd = 100000
+        else
+            resetLighting()
+        end
+    end,
+})
+
+print("[Cryonix-Panel-Free] Has been Loaded.")
